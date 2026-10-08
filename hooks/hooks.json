@@ -1,0 +1,4 @@
+{
+  "description": "classic.SessionStart を hook し、新しい対話セッションが始まるとき（起動と /clear）だけ /color を実行する",
+  "modules": ["./register.ts"]
+}
