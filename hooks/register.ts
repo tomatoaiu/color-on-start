@@ -8,10 +8,24 @@ export function register(on: On, options: PluginOptions): void {
   const configured = String(options.color)
   const color = configured === RANDOM ? COLORS[Math.floor(Math.random() * COLORS.length)] : configured
 
-  on('classic.SessionStart', async ($, e, next) => {
-    if (NEW_SESSION_SOURCES.has(e.source) && (await $.session.surface()) !== null) {
-      await $.command.run({ command: 'color', args: color })
+  // 起動時の classic.SessionStart は、session.start より先に発火することがある。
+  // 対話セッションかどうかは session.start で確定するので、それまで /color の実行を持ち越す。
+  let isInteractive: boolean | undefined
+  let isPending = false
+
+  on('classic.SessionStart', ($, e, next) => {
+    if (NEW_SESSION_SOURCES.has(e.source)) {
+      if (isInteractive === undefined) isPending = true
+      else if (isInteractive) void $.command.run({ command: 'color', args: color }).catch(() => {})
     }
     return next(e)
+  })
+
+  on('session.start', async ($, e, next) => {
+    isInteractive = e.isInteractive
+    const result = await next(e)
+    if (isInteractive && isPending) void $.command.run({ command: 'color', args: color }).catch(() => {})
+    isPending = false
+    return result
   })
 }

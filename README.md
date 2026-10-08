@@ -32,7 +32,7 @@
 }
 ```
 
-動作を確認した Claude Code のバージョンは 2.1.293 です。
+動作を確認した Claude Code のバージョンは 2.1.293 と 2.1.294 です。
 
 ## インストール
 
@@ -91,11 +91,14 @@ echo '{"color":"blue"}' \
 
 mod は、読み込まれたときに色を 1 つ決めます。`color` が色名ならその色、`random` なら 8 色から無作為に選んだ色です。
 
-mod は `classic.SessionStart` イベントを hook します。このイベントは、設定ファイルの `SessionStart` hook と同じときに発火し、セッションの始まり方を `source` として受け取ります。
+mod は 2 つのイベントを hook します。
 
-- `source` が `startup`（新規起動）か `clear`（`/clear`）で、かつ対話セッションのときだけ、mod は `$.command.run` で組み込みの `/color` を実行し、決めておいた色を引数に渡します。`/clear` のあとも同じ色になるのは、このためです。
-- `source` が `resume` などのとき、mod は何もしません。再開したセッションの色は、Claude Code が復元します。
-- `claude -p` のような非対話の実行では、mod は何もしません。
+- `classic.SessionStart` は、設定ファイルの `SessionStart` hook と同じときに発火し、セッションの始まり方を `source` として受け取ります。`source` が `startup`（新規起動）か `clear`（`/clear`）のときだけ、mod は色を付けます。`source` が `resume` などのとき、mod は何もしません。再開したセッションの色は、Claude Code が復元します。
+- `session.start` は、Claude Code の起動時と mod の再読み込み時に発火し、対話セッションかどうかを受け取ります。`claude -p` のような非対話の実行では、mod は何もしません。
+
+起動時には、`classic.SessionStart` が `session.start` より先に発火することがあります。そのとき、mod は対話セッションかどうかをまだ判定できないので、色を付けるのを `session.start` まで持ち越します。
+
+色を付けるとき、mod は `$.command.run` で組み込みの `/color` を実行し、決めておいた色を引数に渡します。`/clear` のあとも同じ色になるのは、このためです。
 
 ## 注意点
 
