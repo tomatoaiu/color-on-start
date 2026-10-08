@@ -5,6 +5,8 @@
   "author": {
     "name": "tomatoaiu"
   },
+  "homepage": "https://github.com/tomatoaiu/color-on-start",
+  "repository": "https://github.com/tomatoaiu/color-on-start",
   "license": "MIT",
   "userConfig": {
     "color": {
