@@ -1,6 +1,6 @@
 {
   "name": "color-on-start",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "新しいセッションが始まるときに /color を実行して、プロンプトバーの色を変える。",
   "author": {
     "name": "tomatoaiu"
@@ -15,7 +15,17 @@
       "description": "新しいセッションに付ける色。random を選ぶと、mod が起動のたびに色を 1 つ選ぶ。",
       "required": false,
       "default": "random",
-      "options": ["random", "red", "blue", "green", "yellow", "purple", "orange", "pink", "cyan"]
+      "options": [
+        "random",
+        "red",
+        "blue",
+        "green",
+        "yellow",
+        "purple",
+        "orange",
+        "pink",
+        "cyan"
+      ]
     }
   }
 }
