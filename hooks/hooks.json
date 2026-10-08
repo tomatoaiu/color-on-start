@@ -1,0 +1,4 @@
+{
+  "description": "session.start を hook し、対話セッションの起動時に /color を実行する",
+  "modules": ["./register.ts"]
+}

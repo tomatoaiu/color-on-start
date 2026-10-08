@@ -1,0 +1,19 @@
+{
+  "name": "color-on-start",
+  "version": "0.1.0",
+  "description": "Claude Code の起動時に /color を実行して、プロンプトバーの色を変える。",
+  "author": {
+    "name": "tomatoaiu"
+  },
+  "license": "MIT",
+  "userConfig": {
+    "color": {
+      "type": "string",
+      "title": "起動時の色",
+      "description": "起動時に /color へ渡す色。random を選ぶと、起動のたびに Claude Code が色を 1 つ選ぶ。",
+      "required": false,
+      "default": "random",
+      "options": ["random", "red", "blue", "green", "yellow", "purple", "orange", "pink", "cyan"]
+    }
+  }
+}
