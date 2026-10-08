@@ -99,6 +99,7 @@ mod は `classic.SessionStart` イベントを hook します。このイベン�
   - `claude --resume` で再開したセッションで、`/clear` を実行したとき
   - Claude Code が mod を再読み込みしたあとに、`/clear` を実行したとき
   - `/color` を手で実行して色を変えたあとに、`/clear` を実行したとき
+- Agent Team の teammate を tmux の分割ペインで動かすと、teammate は別プロセスの新しいセッションとして起動します。mod は teammate のペインでも `/color` を実行するので、teammate の色は mod が選んだ色になります。teammate をリーダーと同じプロセスで動かす場合、mod は teammate に対して動きません。
 - 色が付いていないセッションを再開しても、mod は色を付けません。mod は、セッションの現在の色を読み取れないためです。色を付けるには、`/color` を手で実行してください。手で付けた色も、次に再開したときに Claude Code が復元します。
 - function hooks の API は、Claude Code の更新で予告なく変わる可能性があります。API が変わると、この mod は失敗し、色は変わりません。
 - 環境変数を設定していても、Claude Code が mod を読み込まないことがあります。function hooks の読み込みは、Anthropic 側の段階的公開のフラグにも左右されるためです。このとき、色は変わりません。
