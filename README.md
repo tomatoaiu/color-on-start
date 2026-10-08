@@ -1,13 +1,22 @@
 # color-on-start
 
-Claude Code の起動時に `/color` を自動で実行して、プロンプトバーの色を変える mod です。
+新しいセッションが始まるときに `/color` を自動で実行して、プロンプトバーの色を変える mod です。
 
-組み込みの `/color` は、実行したセッションの色だけを変えます。この mod は、対話セッションが始まるたびに `/color` を実行するので、手で打つ必要がなくなります。
+組み込みの `/color` は、実行したセッションの色だけを変えます。この mod は、新しい対話セッションが始まるたびに `/color` を実行するので、手で打つ必要がなくなります。mod が色を付けるのはセッションごとに 1 回だけなので、同じセッションの色は途中で変わりません。
 
-| 設定 `color` | mod が起動時に実行するコマンド | 色 |
+| 設定 `color` | mod が実行するコマンド | 色 |
 | --- | --- | --- |
-| `random`（既定） | `/color` | Claude Code が起動のたびに 1 つ選ぶ |
-| `blue` などの色名 | `/color blue` | 毎回同じ色になる |
+| `random`（既定） | `/color` | Claude Code がセッションごとに 1 つ選ぶ |
+| `blue` などの色名 | `/color blue` | どのセッションも同じ色になる |
+
+## 色を付けるタイミング
+
+| 場面 | mod の動き |
+| --- | --- |
+| `claude` を起動して、新しいセッションを始める | 色を付ける |
+| `/clear` を実行する | 新しいセッションに色を付ける |
+| `claude --resume` でセッションを再開する | 何もしない。Claude Code が、そのセッションの色を復元する |
+| Claude Code が mod を再読み込みする | 何もしない |
 
 ## 前提条件
 
@@ -56,7 +65,7 @@ mod が読み込まれると、起動直後の画面に次の 2 行が出て、�
 
 | 項目 | 値 | 内容 |
 | --- | --- | --- |
-| `color` | `random`（既定）、`red`、`blue`、`green`、`yellow`、`purple`、`orange`、`pink`、`cyan` | 起動時の色。`random` のときは、Claude Code が起動のたびに色を 1 つ選びます。 |
+| `color` | `random`（既定）、`red`、`blue`、`green`、`yellow`、`purple`、`orange`、`pink`、`cyan` | 新しいセッションに付ける色。`random` のときは、Claude Code がセッションごとに色を 1 つ選びます。 |
 
 色を固定する場合は、`~/.claude/settings.json` の `pluginConfigs` に追加して、Claude Code を再起動します。
 
@@ -74,16 +83,18 @@ mod が読み込まれると、起動直後の画面に次の 2 行が出て、�
 
 ## 仕組み
 
-mod は `session.start` イベントを hook します。
+mod は `classic.SessionStart` イベントを hook します。このイベントは、設定ファイルの `SessionStart` hook と同じときに発火し、セッションの始まり方を `source` として受け取ります。
 
-- 対話セッションのときだけ、mod は `$.command.run` で組み込みの `/color` を実行します。`claude -p` のような非対話の実行では、mod は何もしません。
+- `source` が `startup`（新規起動）か `clear`（`/clear`）で、かつ対話セッションのときだけ、mod は `$.command.run` で組み込みの `/color` を実行します。
+- `source` が `resume` などのとき、mod は何もしません。再開したセッションの色は、Claude Code が復元します。
+- `claude -p` のような非対話の実行では、mod は何もしません。
 - `color` が `random` のとき、mod は引数なしの `/color` を実行します。色を選ぶのは Claude Code です。
 - `color` が色名のとき、mod はその色名を `/color` の引数に渡します。
 
 ## 注意点
 
-- 起動のたびに、`/color` の入力と結果の 2 行が会話の記録に残ります。mod は、ユーザーが `/color` を打ったのと同じ経路でコマンドを実行するためです。
-- `/clear` を実行すると、色は既定に戻ります。`/clear` では `session.start` が発火しないので、mod は色を付け直しません。色を戻すには、`/color` を手で実行してください。
+- 新しいセッションが始まるたびに、`/color` の入力と結果の 2 行が会話の記録に残ります。mod は、ユーザーが `/color` を打ったのと同じ経路でコマンドを実行するためです。
+- 色が付いていないセッションを再開しても、mod は色を付けません。mod は、セッションの現在の色を読み取れないためです。色を付けるには、`/color` を手で実行してください。手で付けた色も、次に再開したときに Claude Code が復元します。
 - function hooks の API は、Claude Code の更新で予告なく変わる可能性があります。API が変わると、この mod は失敗し、色は変わりません。
 - 環境変数を設定していても、Claude Code が mod を読み込まないことがあります。function hooks の読み込みは、Anthropic 側の段階的公開のフラグにも左右されるためです。このとき、色は変わりません。
 
@@ -103,7 +114,9 @@ claude plugin validate . --strict
 claude --plugin-dir .
 ```
 
-`--plugin-dir` で読み込むと、Claude Code は `.claude-plugin/types/` に API の型定義を書き出します。`tsconfig.json` はその型定義を参照するので、エディタが `hooks/register.ts` を型チェックできます。`.claude-plugin/types/` は Git の管理対象から外しています。
+`--plugin-dir` や `CLAUDE_CODE_PLUGIN_DIRS` で読み込むと、Claude Code は `.claude-plugin/types/` に API の型定義を書き出します。`tsconfig.json` はその型定義を参照するので、エディタが `hooks/register.ts` を型チェックできます。`.claude-plugin/types/` は Git の管理対象から外しています。
+
+読み込み中のフォルダにあるファイルを保存すると、開いている対話セッションは mod を再読み込みして、`color-on-start: reloaded` の 1 行を表示します。
 
 ## ライセンス
 

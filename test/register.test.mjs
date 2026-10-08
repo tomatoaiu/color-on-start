@@ -2,11 +2,11 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { register } from '../hooks/register.ts'
 
-function harness(options) {
+function harness(options, { surface = 'terminal' } = {}) {
   let handler
   const calls = []
   register((event, callback) => {
-    assert.equal(event, 'session.start')
+    assert.equal(event, 'classic.SessionStart')
     assert.equal(handler, undefined)
     handler = callback
   }, options)
@@ -15,6 +15,7 @@ function harness(options) {
     calls,
     start(event) {
       return handler({
+        session: { surface: async () => surface },
         command: { run: async request => { calls.push(['run', request]); return {} } },
       }, event, async nextEvent => {
         calls.push(['next', nextEvent])
@@ -24,25 +25,34 @@ function harness(options) {
   }
 }
 
-test('random runs /color without arguments, after the rest of session.start', async () => {
+test('a startup with random runs /color without arguments, then hands the event on', async () => {
   const hook = harness({ color: 'random' })
-  const event = { cwd: '/repo', surface: 'terminal', isInteractive: true }
+  const event = { hook_event_name: 'SessionStart', source: 'startup' }
   assert.equal(await hook.start(event), 'next-result')
   assert.deepEqual(hook.calls, [
-    ['next', event],
     ['run', { command: 'color', args: '' }],
+    ['next', event],
   ])
 })
 
-test('a named color is passed to /color as its argument', async () => {
+test('a /clear colors the new session with the named color', async () => {
   const hook = harness({ color: 'blue' })
-  await hook.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
-  assert.deepEqual(hook.calls[1], ['run', { command: 'color', args: 'blue' }])
+  await hook.start({ hook_event_name: 'SessionStart', source: 'clear' })
+  assert.deepEqual(hook.calls[0], ['run', { command: 'color', args: 'blue' }])
 })
 
+for (const source of ['resume', 'fork', 'compact']) {
+  test(`a session that continues keeps its color: ${source}`, async () => {
+    const hook = harness({ color: 'blue' })
+    const event = { hook_event_name: 'SessionStart', source }
+    assert.equal(await hook.start(event), 'next-result')
+    assert.deepEqual(hook.calls, [['next', event]])
+  })
+}
+
 test('a non-interactive session runs no command', async () => {
-  const hook = harness({ color: 'blue' })
-  const event = { cwd: '/repo', surface: null, isInteractive: false }
+  const hook = harness({ color: 'blue' }, { surface: null })
+  const event = { hook_event_name: 'SessionStart', source: 'startup' }
   assert.equal(await hook.start(event), 'next-result')
   assert.deepEqual(hook.calls, [['next', event]])
 })
