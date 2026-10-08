@@ -10,7 +10,7 @@
     "color": {
       "type": "string",
       "title": "セッションの色",
-      "description": "新しいセッションに付ける色。random を選ぶと、セッションごとに Claude Code が色を 1 つ選ぶ。",
+      "description": "新しいセッションに付ける色。random を選ぶと、mod が起動のたびに色を 1 つ選ぶ。",
       "required": false,
       "default": "random",
       "options": ["random", "red", "blue", "green", "yellow", "purple", "orange", "pink", "cyan"]

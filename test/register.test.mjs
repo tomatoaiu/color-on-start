@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { register } from '../hooks/register.ts'
 
@@ -25,20 +26,44 @@ function harness(options, { surface = 'terminal' } = {}) {
   }
 }
 
-test('a startup with random runs /color without arguments, then hands the event on', async () => {
-  const hook = harness({ color: 'random' })
+test('a startup runs /color with the named color, then hands the event on', async () => {
+  const hook = harness({ color: 'blue' })
   const event = { hook_event_name: 'SessionStart', source: 'startup' }
   assert.equal(await hook.start(event), 'next-result')
   assert.deepEqual(hook.calls, [
-    ['run', { command: 'color', args: '' }],
+    ['run', { command: 'color', args: 'blue' }],
     ['next', event],
   ])
 })
 
-test('a /clear colors the new session with the named color', async () => {
-  const hook = harness({ color: 'blue' })
+test('random picks one color when the mod loads and reuses it after /clear', async t => {
+  const random = t.mock.method(Math, 'random', () => 0.3)
+  const hook = harness({ color: 'random' })
+  random.mock.mockImplementation(() => 0.9)
+
+  await hook.start({ hook_event_name: 'SessionStart', source: 'startup' })
   await hook.start({ hook_event_name: 'SessionStart', source: 'clear' })
-  assert.deepEqual(hook.calls[0], ['run', { command: 'color', args: 'blue' }])
+  assert.deepEqual(
+    hook.calls.filter(([kind]) => kind === 'run'),
+    [
+      ['run', { command: 'color', args: 'green' }],
+      ['run', { command: 'color', args: 'green' }],
+    ],
+  )
+})
+
+test('random picks from exactly the colors the manifest offers', async t => {
+  const plugin = JSON.parse(readFileSync(new URL('../.claude-plugin/plugin.json', import.meta.url), 'utf8'))
+  const offered = plugin.userConfig.color.options.filter(option => option !== 'random')
+  const random = t.mock.method(Math, 'random')
+  const picked = []
+  for (let i = 0; i < offered.length; i++) {
+    random.mock.mockImplementation(() => (i + 0.5) / offered.length)
+    const hook = harness({ color: 'random' })
+    await hook.start({ hook_event_name: 'SessionStart', source: 'startup' })
+    picked.push(hook.calls[0][1].args)
+  }
+  assert.deepEqual(picked, offered)
 })
 
 for (const source of ['resume', 'fork', 'compact']) {
