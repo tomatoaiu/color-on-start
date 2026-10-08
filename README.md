@@ -34,25 +34,16 @@
 
 動作を確認した Claude Code のバージョンは 2.1.293 です。
 
-## ローカルで動かす
-
-この mod は、まだマーケットプレイスで配布していません。このリポジトリのフォルダを、Claude Code に直接読み込ませます。以下の `/path/to/color-on-start` は、このリポジトリを置いた場所に読み替えてください。
-
-1 回だけ試す場合は、`--plugin-dir` を付けて起動します。
+## インストール
 
 ```sh
-claude --plugin-dir /path/to/color-on-start
+claude plugin marketplace add tomatoaiu/color-on-start
+claude plugin install color-on-start@tomatoaiu-color-on-start
 ```
 
-毎回読み込む場合は、`~/.claude/settings.json` の `env` に `CLAUDE_CODE_PLUGIN_DIRS` を追加して、Claude Code を再起動します。パスの先頭には `~` を使えます。
-
-```json
-{
-  "env": {
-    "CLAUDE_CODE_PLUGIN_DIRS": "/path/to/color-on-start"
-  }
-}
-```
+インストール後に Claude Code を再起動すると、mod が読み込まれます。
+配布元の `stable` ブランチは、GitHub Release として公開したコミットだけを指します。
+開発中の `main` は、通常のインストールには使いません。
 
 mod が読み込まれると、起動直後の画面に次の 2 行が出て、プロンプトバーの色が変わります。
 
@@ -67,12 +58,27 @@ mod が読み込まれると、起動直後の画面に次の 2 行が出て、�
 | --- | --- | --- |
 | `color` | `random`（既定）、`red`、`blue`、`green`、`yellow`、`purple`、`orange`、`pink`、`cyan` | 新しいセッションに付ける色。`random` のときは、mod が起動のたびに色を 1 つ選びます。 |
 
-色を固定する場合は、`~/.claude/settings.json` の `pluginConfigs` に追加して、Claude Code を再起動します。
+色を固定する方法は 3 通りあります。どの方法でも、設定後に Claude Code を再起動すると反映されます。
+
+Claude Code の中で設定する場合は、次のコマンドを実行します。
+
+```
+/plugin configure color-on-start@tomatoaiu-color-on-start
+```
+
+シェルから設定する場合は、JSON を標準入力で渡します。
+
+```sh
+echo '{"color":"blue"}' \
+  | claude plugin configure color-on-start@tomatoaiu-color-on-start --values-stdin
+```
+
+`~/.claude/settings.json` に直接書く場合は、`pluginConfigs` に追加します。
 
 ```json
 {
   "pluginConfigs": {
-    "color-on-start": {
+    "color-on-start@tomatoaiu-color-on-start": {
       "options": {
         "color": "blue"
       }
@@ -104,7 +110,22 @@ mod は `classic.SessionStart` イベントを hook します。このイベン�
 - function hooks の API は、Claude Code の更新で予告なく変わる可能性があります。API が変わると、この mod は失敗し、色は変わりません。
 - 環境変数を設定していても、Claude Code が mod を読み込まないことがあります。function hooks の読み込みは、Anthropic 側の段階的公開のフラグにも左右されるためです。このとき、色は変わりません。
 
-## 開発
+## 更新とアンインストール
+
+マーケットプレイスとプラグインを更新した後、Claude Code を再起動してください。
+
+```sh
+claude plugin marketplace update tomatoaiu-color-on-start
+claude plugin update color-on-start@tomatoaiu-color-on-start
+```
+
+アンインストールする場合は、次のコマンドを実行します。
+
+```sh
+claude plugin uninstall color-on-start@tomatoaiu-color-on-start
+```
+
+## 開発とリリース
 
 Node.js 24 以降で、バージョン情報の整合性と hook のテストを実行できます。
 依存パッケージのインストールは不要です。
@@ -113,16 +134,27 @@ Node.js 24 以降で、バージョン情報の整合性と hook のテストを
 npm run check
 ```
 
-Claude Code がある環境では、マニフェストと hooks module も検証できます。
+Claude Code がある環境では、マニフェストも検証できます。
+この検証と上記のテストだけでは、early access の function hooks が実際に読み込まれることまでは確認できません。
 
 ```sh
-claude plugin validate . --strict
-claude --plugin-dir .
+claude plugin validate .claude-plugin/plugin.json --strict
+claude plugin validate .claude-plugin/marketplace.json --strict
+CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 claude --plugin-dir .
 ```
+
+作業中のフォルダを毎回読み込む場合は、`~/.claude/settings.json` の `env` に `CLAUDE_CODE_PLUGIN_DIRS` を追加して、フォルダのパスを指定します。パスの先頭には `~` を使えます。
 
 `--plugin-dir` や `CLAUDE_CODE_PLUGIN_DIRS` で読み込むと、Claude Code は `.claude-plugin/types/` に API の型定義を書き出します。`tsconfig.json` はその型定義を参照するので、エディタが `hooks/register.ts` を型チェックできます。`.claude-plugin/types/` は Git の管理対象から外しています。
 
 読み込み中のフォルダにあるファイルを保存すると、開いている対話セッションは mod を再読み込みして、`color-on-start: reloaded` の 1 行を表示します。
+
+バージョンは SemVer（`0.1.0` など）で管理します。
+Release Please が Conventional Commits から次のバージョンと変更履歴を含む PR を作成します。
+所有者がその PR をマージすると、Release workflow が検証、ZIP の作成、署名付き provenance の生成を実行し、ZIP とチェックサムを Immutable Release として公開します。
+workflow は公開版の署名を検証した後、`stable` を更新します。
+初回公開と GitHub の設定は、[リリース手順](docs/releasing.md)を参照してください。
+変更履歴は [CHANGELOG.md](CHANGELOG.md) に記録します。
 
 ## ライセンス
 

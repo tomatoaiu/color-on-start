@@ -1,0 +1,18 @@
+{
+  "name": "tomatoaiu-color-on-start",
+  "description": "color-on-start を配布するマーケットプレイス。",
+  "owner": {
+    "name": "tomatoaiu"
+  },
+  "plugins": [
+    {
+      "name": "color-on-start",
+      "description": "新しいセッションが始まるときに /color を実行して、プロンプトバーの色を変える。",
+      "source": {
+        "source": "github",
+        "repo": "tomatoaiu/color-on-start",
+        "ref": "stable"
+      }
+    }
+  ]
+}
